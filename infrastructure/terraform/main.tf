@@ -4,11 +4,25 @@
 # =============================================================================
 # Persistent Filesystem (for model cache)
 # =============================================================================
-
+#
+# The filesystem persists across instance destroy/recreate cycles.
+#
+# To destroy ONLY the instance (keep filesystem):
+#   terraform destroy -target=lambdalabs_instance.reranker
+#
+# To destroy the filesystem (when you really want to):
+#   1. Set prevent_destroy = false below
+#   2. terraform destroy
+#   3. Set prevent_destroy = true again
+#
 resource "lambdalabs_filesystem" "model_cache" {
   count  = var.create_filesystem ? 1 : 0
   name   = var.filesystem_name
   region = var.region
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # =============================================================================
