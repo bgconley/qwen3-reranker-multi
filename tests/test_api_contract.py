@@ -184,7 +184,9 @@ class TestReadyResponse:
 
     def test_ready_true(self) -> None:
         """Test ready state."""
-        response = ReadyResponse(ready=True, message="Service is ready", backend="pytorch")
+        response = ReadyResponse(
+            ready=True, message="Service is ready", backend="pytorch"
+        )
         assert response.ready is True
         assert response.backend == "pytorch"
 

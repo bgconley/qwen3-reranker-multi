@@ -15,7 +15,7 @@ terraform {
 # Configure the Lambda Labs provider
 provider "lambdalabs" {
   # API key can be set via:
-  # 1. This attribute (not recommended for security)
+  # 1. terraform.tfvars (lambda_api_key)
   # 2. LAMBDALABS_API_KEY environment variable (recommended)
-  # api_key = var.lambda_api_key
+  api_key = var.lambda_api_key != "" ? var.lambda_api_key : null
 }

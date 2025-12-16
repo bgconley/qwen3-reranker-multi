@@ -13,7 +13,6 @@ Supports multiple backends:
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field, field_validator
@@ -141,9 +140,7 @@ class ServiceSettings(BaseSettings):
     backend: str = Field(
         default="auto", description="Backend: auto | pytorch | vllm | mlx"
     )
-    profile: str = Field(
-        default="qwen3_4b_cuda", description="Profile name to load"
-    )
+    profile: str = Field(default="qwen3_4b_cuda", description="Profile name to load")
 
     # Service binding
     host: str = Field(default="0.0.0.0", description="Host to bind to")
@@ -185,8 +182,12 @@ class ServiceSettings(BaseSettings):
     )
 
     # Timeouts
-    request_timeout: float = Field(default=120.0, description="Request timeout in seconds")
-    warmup_timeout: float = Field(default=300.0, description="Warmup timeout in seconds")
+    request_timeout: float = Field(
+        default=120.0, description="Request timeout in seconds"
+    )
+    warmup_timeout: float = Field(
+        default=300.0, description="Warmup timeout in seconds"
+    )
 
     @field_validator("log_level")
     @classmethod
@@ -260,7 +261,11 @@ class AppConfig(BaseModel):
     @property
     def backend(self) -> str:
         """Get effective backend (with override)."""
-        return self.settings.backend if self.settings.backend != "auto" else self.profile.backend
+        return (
+            self.settings.backend
+            if self.settings.backend != "auto"
+            else self.profile.backend
+        )
 
 
 def load_profiles_yaml(config_dir: Path) -> ProfilesFile:

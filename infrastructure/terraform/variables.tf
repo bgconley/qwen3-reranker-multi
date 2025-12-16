@@ -5,6 +5,13 @@
 # Required Variables
 # =============================================================================
 
+variable "lambda_api_key" {
+  description = "Lambda Labs API key (can also be set via LAMBDALABS_API_KEY env var)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "ssh_key_name" {
   description = "Name of the SSH key registered in Lambda Cloud (required)"
   type        = string
@@ -79,7 +86,7 @@ variable "git_repo_url" {
 variable "git_branch" {
   description = "Git branch to checkout"
   type        = string
-  default     = "main"
+  default     = "master"
 }
 
 # =============================================================================
@@ -96,4 +103,20 @@ variable "tailscale_tags" {
   description = "Tailscale tags to apply (e.g., tag:servers)"
   type        = list(string)
   default     = []
+}
+
+# =============================================================================
+# Optional Variables - Persistent Storage
+# =============================================================================
+
+variable "create_filesystem" {
+  description = "Whether to create a persistent filesystem for model cache"
+  type        = bool
+  default     = true
+}
+
+variable "filesystem_name" {
+  description = "Name for the Lambda persistent filesystem"
+  type        = string
+  default     = "qwen3-reranker-cache"
 }

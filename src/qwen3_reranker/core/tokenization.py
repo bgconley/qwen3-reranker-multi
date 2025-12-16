@@ -263,14 +263,12 @@ def setup_tokenizer(
 
     if len(yes_tokens) != 1:
         raise ValueError(
-            f"'{yes_token}' is not a single token. "
-            f"Got {len(yes_tokens)} tokens: {yes_tokens}"
+            f"'{yes_token}' is not a single token. Got {len(yes_tokens)} tokens: {yes_tokens}"
         )
 
     if len(no_tokens) != 1:
         raise ValueError(
-            f"'{no_token}' is not a single token. "
-            f"Got {len(no_tokens)} tokens: {no_tokens}"
+            f"'{no_token}' is not a single token. Got {len(no_tokens)} tokens: {no_tokens}"
         )
 
     yes_token_id = yes_tokens[0]

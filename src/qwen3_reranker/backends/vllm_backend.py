@@ -77,8 +77,7 @@ class VLLMBackend:
         trust_remote_code = kwargs.get("trust_remote_code", True)
 
         logger.info(
-            f"Loading vLLM model: {model_id} "
-            f"(tp={tp_size}, gpu_util={gpu_util}, max_len={max_len})"
+            f"Loading vLLM model: {model_id} (tp={tp_size}, gpu_util={gpu_util}, max_len={max_len})"
         )
 
         start_time = time.perf_counter()

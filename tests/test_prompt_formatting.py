@@ -4,7 +4,6 @@ import pytest
 
 from qwen3_reranker.core.prompt import PromptFormatter, PromptTemplates
 
-
 # Official Qwen3 templates from model card
 OFFICIAL_PREFIX = """<|im_start|>system
 Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>
@@ -19,7 +18,9 @@ OFFICIAL_SUFFIX = """<|im_end|>
 
 """
 
-OFFICIAL_QUERY_TEMPLATE = "<Instruct>: {instruction}\n<Query>: {query}\n<Document>: {doc}"
+OFFICIAL_QUERY_TEMPLATE = (
+    "<Instruct>: {instruction}\n<Query>: {query}\n<Document>: {doc}"
+)
 
 
 @pytest.fixture
@@ -151,7 +152,7 @@ class TestPromptFormatter:
         """Test handling of special characters in content."""
         prompt = formatter.format_single(
             query='Query with "quotes" and <tags>',
-            doc='Doc with {braces} and [brackets]',
+            doc="Doc with {braces} and [brackets]",
         )
 
         # Content should be preserved as-is

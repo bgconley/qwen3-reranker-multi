@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 
 from qwen3_reranker.core.scoring import (
+    RerankerScorer,
     extract_yes_no_scores,
     rank_by_scores,
     validate_score_distribution,
-    RerankerScorer,
 )
 
 
@@ -54,11 +54,13 @@ class TestExtractYesNoScores:
     def test_batch_processing(self) -> None:
         """Test scoring multiple items in batch."""
         # 3 items with varying yes/no preferences
-        logits = np.array([
-            [10.0, -10.0],  # Strong no
-            [0.0, 0.0],  # Neutral
-            [-10.0, 10.0],  # Strong yes
-        ])
+        logits = np.array(
+            [
+                [10.0, -10.0],  # Strong no
+                [0.0, 0.0],  # Neutral
+                [-10.0, 10.0],  # Strong yes
+            ]
+        )
 
         scores = extract_yes_no_scores(logits, yes_token_id=1, no_token_id=0)
 
@@ -216,10 +218,12 @@ class TestRerankerScorer:
         """Test scoring through the class interface."""
         scorer = RerankerScorer(yes_token_id=1, no_token_id=0)
 
-        logits = np.array([
-            [10.0, -10.0],  # Strong no
-            [-10.0, 10.0],  # Strong yes
-        ])
+        logits = np.array(
+            [
+                [10.0, -10.0],  # Strong no
+                [-10.0, 10.0],  # Strong yes
+            ]
+        )
 
         scores = scorer.score_logits(logits)
 

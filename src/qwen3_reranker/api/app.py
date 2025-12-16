@@ -132,7 +132,9 @@ async def lifespan(app: FastAPI):
     # Get backend options from profile
     backend_kwargs: dict[str, Any] = {}
     if config.backend == "pytorch" and config.profile.pytorch_options:
-        backend_kwargs["device"] = config.settings.device or config.profile.pytorch_options.device
+        backend_kwargs["device"] = (
+            config.settings.device or config.profile.pytorch_options.device
+        )
     elif config.backend == "vllm" and config.profile.vllm_options:
         backend_kwargs["tensor_parallel_size"] = (
             config.settings.tensor_parallel_size
@@ -147,7 +149,9 @@ async def lifespan(app: FastAPI):
     # Get and load backend
     try:
         _backend = get_backend(config.backend, **backend_kwargs)
-        logger.info("loading_model", backend=_backend.backend_name, model_id=config.model_id)
+        logger.info(
+            "loading_model", backend=_backend.backend_name, model_id=config.model_id
+        )
         _backend.load_model(config.model_id)
     except Exception as e:
         logger.error("startup_model_load_failed", error=str(e))
@@ -296,7 +300,11 @@ def validate_rerank_request(request: RerankRequest, config: AppConfig) -> None:
 
     # Optional model alias allowlist enforcement
     allowed_aliases = config.settings.get_model_aliases()
-    if allowed_aliases is not None and request.model and request.model not in allowed_aliases:
+    if (
+        allowed_aliases is not None
+        and request.model
+        and request.model not in allowed_aliases
+    ):
         raise ModelAliasNotAllowedError(
             f"Model alias not allowed: {request.model}",
             {"model": request.model, "allowed": sorted(allowed_aliases)},

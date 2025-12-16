@@ -73,6 +73,25 @@ output "wekadocs_config" {
 }
 
 # =============================================================================
+# Persistent Storage
+# =============================================================================
+
+output "filesystem_name" {
+  description = "Name of the persistent filesystem (if created)"
+  value       = var.create_filesystem ? lambdalabs_filesystem.model_cache[0].name : "none"
+}
+
+output "filesystem_id" {
+  description = "ID of the persistent filesystem (if created)"
+  value       = var.create_filesystem ? lambdalabs_filesystem.model_cache[0].id : "none"
+}
+
+output "filesystem_mount_point" {
+  description = "Mount point for the persistent filesystem"
+  value       = var.create_filesystem ? "/home/ubuntu/${var.filesystem_name}" : "none"
+}
+
+# =============================================================================
 # Quick Reference
 # =============================================================================
 
@@ -90,6 +109,11 @@ output "quick_reference" {
     Tailscale Access (after joining your tailnet):
       Hostname: ${var.tailscale_hostname}
       URL: http://${var.tailscale_hostname}:${var.reranker_port}
+
+    Persistent Storage:
+      Filesystem: ${var.create_filesystem ? var.filesystem_name : "none (ephemeral)"}
+      Mount Point: ${var.create_filesystem ? "/home/ubuntu/${var.filesystem_name}" : "N/A"}
+      HF Cache: ${var.create_filesystem ? "/home/ubuntu/${var.filesystem_name}/huggingface" : "~/.cache/huggingface (ephemeral)"}
 
     Health Check:
       curl http://${var.tailscale_hostname}:${var.reranker_port}/health

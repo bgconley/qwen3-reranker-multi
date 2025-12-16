@@ -46,13 +46,22 @@ TAILSCALE_AUTH_KEY="${TAILSCALE_AUTH_KEY:-}"
 TAILSCALE_HOSTNAME="${TAILSCALE_HOSTNAME:-qwen3-reranker}"
 TAILSCALE_TAGS="${TAILSCALE_TAGS:-}"
 GIT_REPO_URL="${GIT_REPO_URL:-https://github.com/yourusername/qwen3-reranker-multi.git}"
-GIT_BRANCH="${GIT_BRANCH:-main}"
+GIT_BRANCH="${GIT_BRANCH:-master}"
 RERANKER_PROFILE="${RERANKER_PROFILE:-qwen3_4b_cuda}"
 RERANKER_PORT="${RERANKER_PORT:-9003}"
 RERANKER_BACKEND="${RERANKER_BACKEND:-pytorch}"
+FILESYSTEM_NAME="${FILESYSTEM_NAME:-}"
 
 INSTALL_DIR="/home/ubuntu/qwen3-reranker-multi"
 VENV_DIR="${INSTALL_DIR}/.venv"
+
+# Persistent storage paths (if filesystem attached)
+if [ -n "$FILESYSTEM_NAME" ]; then
+    FILESYSTEM_MOUNT="/home/ubuntu/${FILESYSTEM_NAME}"
+    HF_CACHE_DIR="${FILESYSTEM_MOUNT}/huggingface"
+else
+    HF_CACHE_DIR=""
+fi
 
 # =============================================================================
 # Validation
@@ -70,6 +79,12 @@ log_info "  Git branch: ${GIT_BRANCH}"
 log_info "  Reranker profile: ${RERANKER_PROFILE}"
 log_info "  Reranker port: ${RERANKER_PORT}"
 log_info "  Reranker backend: ${RERANKER_BACKEND}"
+if [ -n "$FILESYSTEM_NAME" ]; then
+    log_info "  Filesystem: ${FILESYSTEM_NAME} (mounted at ${FILESYSTEM_MOUNT})"
+    log_info "  HF cache: ${HF_CACHE_DIR}"
+else
+    log_info "  Filesystem: none (using ephemeral storage)"
+fi
 
 # =============================================================================
 # Step 1: System Updates
@@ -162,10 +177,47 @@ pip install -e ".[cuda]"
 log_info "Python environment ready."
 
 # =============================================================================
-# Step 5: Configure Systemd Service
+# Step 5: Configure Persistent Storage (if filesystem attached)
 # =============================================================================
 
-log_info "Step 5/6: Configuring systemd service..."
+if [ -n "$FILESYSTEM_NAME" ]; then
+    log_info "Step 5/7: Configuring persistent storage..."
+
+    # Wait for filesystem to be mounted (Lambda mounts automatically)
+    MOUNT_WAIT=0
+    while [ ! -d "$FILESYSTEM_MOUNT" ] && [ $MOUNT_WAIT -lt 30 ]; do
+        log_info "Waiting for filesystem to mount..."
+        sleep 2
+        MOUNT_WAIT=$((MOUNT_WAIT + 2))
+    done
+
+    if [ -d "$FILESYSTEM_MOUNT" ]; then
+        log_info "Filesystem mounted at ${FILESYSTEM_MOUNT}"
+
+        # Create HuggingFace cache directory
+        mkdir -p "${HF_CACHE_DIR}"
+
+        log_info "HuggingFace cache directory created at ${HF_CACHE_DIR}"
+    else
+        log_warn "Filesystem not mounted after 30s, using ephemeral storage"
+        HF_CACHE_DIR=""
+    fi
+else
+    log_info "Step 5/7: No filesystem attached, skipping persistent storage setup"
+fi
+
+# =============================================================================
+# Step 6: Configure Systemd Service
+# =============================================================================
+
+log_info "Step 6/7: Configuring systemd service..."
+
+# Build HF cache environment line if filesystem is available
+if [ -n "$HF_CACHE_DIR" ]; then
+    HF_ENV_LINE="Environment=\"HF_HOME=${HF_CACHE_DIR}\""
+else
+    HF_ENV_LINE=""
+fi
 
 # Create systemd service file
 sudo tee /etc/systemd/system/qwen3-reranker.service > /dev/null << EOF
@@ -188,6 +240,7 @@ Environment="QWEN_RERANK_LOG_LEVEL=INFO"
 Environment="QWEN_RERANK_LOG_FORMAT=json"
 Environment="PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True"
 Environment="TRANSFORMERS_TRUST_REMOTE_CODE=1"
+${HF_ENV_LINE}
 ExecStart=${VENV_DIR}/bin/python -m qwen3_reranker.api.app
 Restart=always
 RestartSec=10
@@ -211,10 +264,10 @@ sudo systemctl enable qwen3-reranker
 log_info "Systemd service configured."
 
 # =============================================================================
-# Step 6: Start Service
+# Step 7: Start Service
 # =============================================================================
 
-log_info "Step 6/6: Starting reranker service..."
+log_info "Step 7/7: Starting reranker service..."
 
 sudo systemctl start qwen3-reranker
 
@@ -245,6 +298,11 @@ echo ""
 echo "  Tailscale Hostname: ${TAILSCALE_HOSTNAME}"
 echo "  Tailscale IP:       ${TAILSCALE_IP}"
 echo "  Service Port:       ${RERANKER_PORT}"
+if [ -n "$HF_CACHE_DIR" ]; then
+echo "  HF Cache:           ${HF_CACHE_DIR} (persistent)"
+else
+echo "  HF Cache:           ~/.cache/huggingface (ephemeral)"
+fi
 echo ""
 echo "  Access URLs (via Tailscale):"
 echo "    Health:  http://${TAILSCALE_HOSTNAME}:${RERANKER_PORT}/health"

@@ -76,8 +76,12 @@ def main() -> None:
     )
     ap.add_argument("--k", type=int, default=10, help="K for nDCG/MRR/Recall")
     ap.add_argument("--instruction", default=None, help="Optional instruction override")
-    ap.add_argument("--max-length", type=int, default=None, help="Optional max_length override")
-    ap.add_argument("--output", default=None, help="Optional output JSON path for summary")
+    ap.add_argument(
+        "--max-length", type=int, default=None, help="Optional max_length override"
+    )
+    ap.add_argument(
+        "--output", default=None, help="Optional output JSON path for summary"
+    )
     ap.add_argument("--timeout", type=float, default=120.0, help="HTTP timeout seconds")
     args = ap.parse_args()
 
@@ -95,15 +99,23 @@ def main() -> None:
             negatives = row.get("negatives")
             if not isinstance(query, str):
                 raise SystemExit(f"{dataset_path}:{i}: invalid query")
-            if not isinstance(positives, list) or not all(isinstance(x, str) for x in positives):
+            if not isinstance(positives, list) or not all(
+                isinstance(x, str) for x in positives
+            ):
                 raise SystemExit(f"{dataset_path}:{i}: invalid positives")
-            if not isinstance(negatives, list) or not all(isinstance(x, str) for x in negatives):
+            if not isinstance(negatives, list) or not all(
+                isinstance(x, str) for x in negatives
+            ):
                 raise SystemExit(f"{dataset_path}:{i}: invalid negatives")
 
             documents = list(positives) + list(negatives)
             positive_set = set(range(len(positives)))
 
-            payload: dict[str, Any] = {"query": query, "documents": documents, "model": "eval"}
+            payload: dict[str, Any] = {
+                "query": query,
+                "documents": documents,
+                "model": "eval",
+            }
             if args.instruction is not None:
                 payload["instruction"] = args.instruction
             if args.max_length is not None:
@@ -114,7 +126,7 @@ def main() -> None:
             data = resp.json()
             results = data.get("results", [])
             if not isinstance(results, list):
-                raise SystemExit(f"Bad response: missing results list")
+                raise SystemExit("Bad response: missing results list")
 
             ranked_indices: list[int] = []
             for r in results:
@@ -158,4 +170,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

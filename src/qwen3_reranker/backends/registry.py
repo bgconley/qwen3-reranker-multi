@@ -66,8 +66,7 @@ def detect_available_backends() -> list[str]:
 
                 available.append("vllm")
                 logger.info(
-                    f"✓ vLLM backend available "
-                    f"(CUDA: {torch.cuda.get_device_name(0)}) - SECONDARY"
+                    f"✓ vLLM backend available (CUDA: {torch.cuda.get_device_name(0)}) - SECONDARY"
                 )
             except ImportError:
                 logger.debug("vLLM not installed")

@@ -63,7 +63,7 @@ reranker_port = 9003
 git_repo_url = "https://github.com/yourusername/qwen3-reranker-multi.git"
 
 # Branch to checkout
-git_branch = "main"
+git_branch = "master"
 
 # =============================================================================
 # Optional: Tailscale Configuration
@@ -76,3 +76,14 @@ tailscale_hostname = "qwen3-reranker"
 # Tailscale tags (requires ACL configuration in your tailnet)
 # Example: ["tag:servers", "tag:gpu"]
 tailscale_tags = []
+
+# =============================================================================
+# Optional: Persistent Storage
+# =============================================================================
+
+# Create a persistent filesystem for model cache
+# This prevents re-downloading the ~8GB model on each deploy
+create_filesystem = true
+
+# Name for the filesystem (appears in Lambda Cloud dashboard)
+filesystem_name = "qwen3-reranker-cache"

@@ -14,8 +14,6 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-import numpy as np
-
 from qwen3_reranker.backends.base import RerankerBackend
 from qwen3_reranker.core.errors import ConcurrencyLimitError
 from qwen3_reranker.core.prompt import PromptFormatter
@@ -89,7 +87,7 @@ async def acquire_forward_slot(timeout: float = 60.0) -> bool:
     try:
         await asyncio.wait_for(semaphore.acquire(), timeout=timeout)
         return True
-    except asyncio.TimeoutError:
+    except TimeoutError:
         raise ConcurrencyLimitError(
             "Timed out waiting for forward pass slot",
             {"timeout_seconds": timeout},

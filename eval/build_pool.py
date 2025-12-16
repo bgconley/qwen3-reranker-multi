@@ -50,7 +50,9 @@ def _convert_record(obj: dict[str, Any]) -> dict[str, Any]:
     if "documents" in obj and "relevant_indices" in obj:
         documents = _as_str_list(obj["documents"])
         rel_idx = obj["relevant_indices"]
-        if not isinstance(rel_idx, list) or not all(isinstance(i, int) for i in rel_idx):
+        if not isinstance(rel_idx, list) or not all(
+            isinstance(i, int) for i in rel_idx
+        ):
             raise ValueError("expected 'relevant_indices' as list[int]")
         positives = [documents[i] for i in rel_idx if 0 <= i < len(documents)]
         negatives = [doc for i, doc in enumerate(documents) if i not in set(rel_idx)]
@@ -62,7 +64,11 @@ def _convert_record(obj: dict[str, Any]) -> dict[str, Any]:
         positives: list[str] = []
         negatives: list[str] = []
         for d in docs_obj:
-            if not isinstance(d, dict) or "text" not in d or not isinstance(d["text"], str):
+            if (
+                not isinstance(d, dict)
+                or "text" not in d
+                or not isinstance(d["text"], str)
+            ):
                 raise ValueError("documents[] objects must include string 'text'")
             relevant = bool(d.get("relevant", False))
             (positives if relevant else negatives).append(d["text"])
@@ -74,7 +80,9 @@ def _convert_record(obj: dict[str, Any]) -> dict[str, Any]:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--input", required=True, help="Input JSONL path")
-    ap.add_argument("--output", required=True, help="Output JSONL path (dataset schema)")
+    ap.add_argument(
+        "--output", required=True, help="Output JSONL path (dataset schema)"
+    )
     ap.add_argument(
         "--min-negatives",
         type=int,
@@ -95,9 +103,10 @@ def main() -> None:
     kept = 0
     dropped = 0
 
-    with in_path.open("r", encoding="utf-8") as fin, out_path.open(
-        "w", encoding="utf-8"
-    ) as fout:
+    with (
+        in_path.open("r", encoding="utf-8") as fin,
+        out_path.open("w", encoding="utf-8") as fout,
+    ):
         for line_no, line in enumerate(fin, start=1):
             line = line.strip()
             if not line:
@@ -123,4 +132,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

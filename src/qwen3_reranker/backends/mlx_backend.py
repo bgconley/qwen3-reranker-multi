@@ -101,7 +101,9 @@ class MLXBackend:
 
         self._loaded = True
         elapsed_ms = (time.perf_counter() - start_time) * 1000
-        logger.info(f"MLX backend loaded on {mx.default_device()} in {elapsed_ms:.1f}ms")
+        logger.info(
+            f"MLX backend loaded on {mx.default_device()} in {elapsed_ms:.1f}ms"
+        )
 
     def _forward_impl(self, tokens: "mx.array") -> "mx.array":
         """Internal forward pass - may be compiled."""

@@ -5,14 +5,11 @@ import tempfile
 from pathlib import Path
 
 import pytest
-import yaml
 
 from qwen3_reranker.core.config import (
     AppConfig,
-    ProfileConfig,
     ProfilesFile,
     ServiceSettings,
-    clear_config_cache,
     load_profiles_yaml,
 )
 from qwen3_reranker.core.errors import ConfigurationError
@@ -169,7 +166,11 @@ class TestServiceSettings:
             assert settings.log_level == "DEBUG"
         finally:
             # Restore env vars
-            for key in ["QWEN_RERANK_PROFILE", "QWEN_RERANK_PORT", "QWEN_RERANK_LOG_LEVEL"]:
+            for key in [
+                "QWEN_RERANK_PROFILE",
+                "QWEN_RERANK_PORT",
+                "QWEN_RERANK_LOG_LEVEL",
+            ]:
                 os.environ.pop(key, None)
             os.environ.update(env_backup)
 

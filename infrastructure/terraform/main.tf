@@ -2,6 +2,16 @@
 # With Tailscale networking for secure, direct access
 
 # =============================================================================
+# Persistent Filesystem (for model cache)
+# =============================================================================
+
+resource "lambdalabs_filesystem" "model_cache" {
+  count  = var.create_filesystem ? 1 : 0
+  name   = var.filesystem_name
+  region = var.region
+}
+
+# =============================================================================
 # Lambda Cloud Instance
 # =============================================================================
 
@@ -10,6 +20,7 @@ resource "lambdalabs_instance" "reranker" {
   region_name        = var.region
   instance_type_name = var.instance_type
   ssh_key_names      = [var.ssh_key_name]
+  file_system_names  = var.create_filesystem ? [lambdalabs_filesystem.model_cache[0].name] : []
 
   # SSH connection for provisioning
   connection {
@@ -39,7 +50,7 @@ resource "lambdalabs_instance" "reranker" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /tmp/setup-instance.sh",
-      "TAILSCALE_AUTH_KEY='${var.tailscale_auth_key}' TAILSCALE_HOSTNAME='${var.tailscale_hostname}' TAILSCALE_TAGS='${join(",", var.tailscale_tags)}' GIT_REPO_URL='${var.git_repo_url}' GIT_BRANCH='${var.git_branch}' RERANKER_PROFILE='${var.reranker_profile}' RERANKER_PORT='${var.reranker_port}' RERANKER_BACKEND='${var.reranker_backend}' /tmp/setup-instance.sh",
+      "TAILSCALE_AUTH_KEY='${var.tailscale_auth_key}' TAILSCALE_HOSTNAME='${var.tailscale_hostname}' TAILSCALE_TAGS='${join(",", var.tailscale_tags)}' GIT_REPO_URL='${var.git_repo_url}' GIT_BRANCH='${var.git_branch}' RERANKER_PROFILE='${var.reranker_profile}' RERANKER_PORT='${var.reranker_port}' RERANKER_BACKEND='${var.reranker_backend}' FILESYSTEM_NAME='${var.create_filesystem ? var.filesystem_name : ""}' /tmp/setup-instance.sh",
     ]
   }
 }
