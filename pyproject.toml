@@ -7,7 +7,7 @@ name = "qwen3-reranker"
 version = "0.2.0"
 description = "Multi-backend Qwen3-Reranker-4B HTTP service for document reranking"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "Brennan Conley"}
@@ -19,6 +19,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -97,7 +98,7 @@ qwen3-reranker = "qwen3_reranker.api.app:main"
 packages = ["src/qwen3_reranker"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py310"
 line-length = 100
 src = ["src", "tests"]
 

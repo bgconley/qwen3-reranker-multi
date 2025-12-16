@@ -121,14 +121,20 @@ variable "tailscale_tags" {
 # Optional Variables - Persistent Storage
 # =============================================================================
 
-variable "create_filesystem" {
-  description = "Whether to create a persistent filesystem for model cache"
+variable "attach_filesystem" {
+  description = "Whether to attach an existing Lambda filesystem by name (recommended). If null, falls back to create_filesystem for backward compatibility."
   type        = bool
-  default     = true
+  default     = null
+}
+
+variable "create_filesystem" {
+  description = "DEPRECATED: use attach_filesystem instead. When true, will attach the filesystem_name to the instance. This no longer creates the filesystem."
+  type        = bool
+  default     = false
 }
 
 variable "filesystem_name" {
-  description = "Name for the Lambda persistent filesystem"
+  description = "Name of an existing Lambda persistent filesystem to attach"
   type        = string
   default     = "qwen3-reranker-cache"
 }

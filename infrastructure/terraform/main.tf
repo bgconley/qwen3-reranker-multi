@@ -2,30 +2,6 @@
 # With Tailscale networking for secure, direct access
 
 # =============================================================================
-# Persistent Filesystem (for model cache)
-# =============================================================================
-#
-# The filesystem persists across instance destroy/recreate cycles.
-#
-# To destroy ONLY the instance (keep filesystem):
-#   terraform destroy -target=lambdalabs_instance.reranker
-#
-# To destroy the filesystem (when you really want to):
-#   1. Set prevent_destroy = false below
-#   2. terraform destroy
-#   3. Set prevent_destroy = true again
-#
-resource "lambdalabs_filesystem" "model_cache" {
-  count  = var.create_filesystem ? 1 : 0
-  name   = var.filesystem_name
-  region = var.region
-
-  lifecycle {
-    prevent_destroy = true
-  }
-}
-
-# =============================================================================
 # Lambda Cloud Instance
 # =============================================================================
 
@@ -34,7 +10,7 @@ resource "lambdalabs_instance" "reranker" {
   region_name        = var.region
   instance_type_name = var.instance_type
   ssh_key_names      = [var.ssh_key_name]
-  file_system_names  = var.create_filesystem ? [lambdalabs_filesystem.model_cache[0].name] : []
+  file_system_names  = local.attach_filesystem ? [var.filesystem_name] : []
 
   # SSH connection for provisioning
   connection {
@@ -136,7 +112,8 @@ locals {
   tailscale_fqdn = var.tailscale_hostname
 
   tailscale_tags_csv         = join(",", var.tailscale_tags)
-  filesystem_name_for_script = var.create_filesystem ? var.filesystem_name : ""
+  attach_filesystem          = coalesce(var.attach_filesystem, var.create_filesystem)
+  filesystem_name_for_script = local.attach_filesystem ? var.filesystem_name : ""
 
   # Reranker service URL via Tailscale
   reranker_url = "http://${local.tailscale_fqdn}:${var.reranker_port}"

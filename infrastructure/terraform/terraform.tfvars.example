@@ -8,6 +8,12 @@
 # Required Variables
 # =============================================================================
 
+# Lambda Cloud API key
+# Recommended: set via env var instead:
+#   export LAMBDALABS_API_KEY="..."
+# Fallback (less secure; stored in Terraform state):
+# lambda_api_key = "your-lambda-api-key"
+
 # Name of the SSH key you've uploaded to Lambda Cloud
 # Create/view keys at: https://cloud.lambdalabs.com/ssh-keys
 ssh_key_name = "your-ssh-key-name"
@@ -91,9 +97,9 @@ tailscale_tags = []
 # Optional: Persistent Storage
 # =============================================================================
 
-# Create a persistent filesystem for model cache
+# Attach an existing persistent filesystem for model cache
 # This prevents re-downloading the ~8GB model on each deploy
-create_filesystem = true
+attach_filesystem = true
 
 # Name for the filesystem (appears in Lambda Cloud dashboard)
 filesystem_name = "qwen3-reranker-cache"

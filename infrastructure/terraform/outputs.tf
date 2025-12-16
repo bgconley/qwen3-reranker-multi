@@ -54,8 +54,13 @@ output "tailscale_hostname" {
 }
 
 output "tailscale_url" {
-  description = "Tailscale URL for the reranker service"
+  description = "Tailscale URL for the reranker service (uses requested hostname; actual MagicDNS name may differ if there is a hostname conflict)"
   value       = "http://${var.tailscale_hostname}:${var.reranker_port}"
+}
+
+output "tailscale_discovery_command" {
+  description = "SSH command to discover the actual Tailscale DNS name + IP on the instance"
+  value       = "ssh ubuntu@${lambdalabs_instance.reranker.ip} 'tailscale status --json | jq -r .Self.DNSName; tailscale ip -4'"
 }
 
 # =============================================================================
@@ -82,18 +87,18 @@ output "wekadocs_config" {
 # =============================================================================
 
 output "filesystem_name" {
-  description = "Name of the persistent filesystem (if created)"
-  value       = var.create_filesystem ? lambdalabs_filesystem.model_cache[0].name : "none"
+  description = "Name of the persistent filesystem (if attached)"
+  value       = local.attach_filesystem ? var.filesystem_name : "none"
 }
 
 output "filesystem_id" {
-  description = "ID of the persistent filesystem (if created)"
-  value       = var.create_filesystem ? lambdalabs_filesystem.model_cache[0].id : "none"
+  description = "ID of the persistent filesystem (not tracked by this module)"
+  value       = "not_tracked"
 }
 
 output "filesystem_mount_point" {
   description = "Mount point for the persistent filesystem"
-  value       = var.create_filesystem ? "auto-detected on instance (see /tmp/setup-instance.log)" : "none"
+  value       = local.attach_filesystem ? "auto-detected on instance (see /tmp/setup-instance.log)" : "none"
 }
 
 # =============================================================================
@@ -114,11 +119,13 @@ output "quick_reference" {
     Tailscale Access (after joining your tailnet):
       Hostname: ${var.tailscale_hostname}
       URL: http://${var.tailscale_hostname}:${var.reranker_port}
+      If the hostname doesn't resolve, discover the actual MagicDNS name:
+        ssh ubuntu@${lambdalabs_instance.reranker.ip} 'tailscale status --json | jq -r .Self.DNSName; tailscale ip -4'
 
     Persistent Storage:
-      Filesystem: ${var.create_filesystem ? var.filesystem_name : "none (ephemeral)"}
-      Mount Point: ${var.create_filesystem ? "auto-detected on instance (see /tmp/setup-instance.log)" : "N/A"}
-      HF Cache: ${var.create_filesystem ? "auto-detected on instance (see /tmp/setup-instance.log)" : "~/.cache/huggingface (ephemeral)"}
+      Filesystem: ${local.attach_filesystem ? var.filesystem_name : "none (ephemeral)"}
+      Mount Point: ${local.attach_filesystem ? "auto-detected on instance (see /tmp/setup-instance.log)" : "N/A"}
+      HF Cache: ${local.attach_filesystem ? "auto-detected on instance (see /tmp/setup-instance.log)" : "~/.cache/huggingface (ephemeral)"}
 
     Health Check:
       curl http://${var.tailscale_hostname}:${var.reranker_port}/health
@@ -142,6 +149,9 @@ output "quick_reference" {
 
     Verify filesystem persistence (sentinel):
       ssh ubuntu@${lambdalabs_instance.reranker.ip} 'grep -E \"Persistence sentinel\" /tmp/setup-instance.log | tail -n 5'
+
+    If you upgraded from an older version that managed the filesystem resource:
+      terraform state rm lambdalabs_filesystem.model_cache[0]
 
     ============================================================
   EOT

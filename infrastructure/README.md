@@ -97,6 +97,8 @@ cp terraform.tfvars.example terraform.tfvars
 nano terraform.tfvars  # or use your preferred editor
 ```
 
+If you set `attach_filesystem = true`, create the filesystem in the Lambda Cloud UI first (same `filesystem_name` and `region`).
+
 ### 2. Set Lambda API Key
 
 ```bash
@@ -144,9 +146,15 @@ curl -X POST http://qwen3-reranker:9003/v1/rerank \
   }'
 ```
 
+If `curl` to the short hostname fails, discover the actual MagicDNS name and/or Tailscale IP (Tailscale may append a suffix if the hostname is already taken):
+
+```bash
+ssh ubuntu@$(terraform output -raw public_ip) 'tailscale status --json | jq -r .Self.DNSName; tailscale ip -4'
+```
+
 ### 4b. Verify Persistent Filesystem (Recommended)
 
-If `create_filesystem = true`, the setup script writes a sentinel file into the
+If `attach_filesystem = true` (or the deprecated `create_filesystem = true`), the setup script writes a sentinel file into the
 HuggingFace cache directory on the persistent filesystem.
 
 1. On the first deploy, confirm the sentinel was written:
@@ -253,6 +261,25 @@ terraform destroy
 This will:
 1. Terminate the Lambda Cloud instance
 2. The Tailscale device will be automatically removed (if using ephemeral key)
+3. Leave the filesystem alone (recommended)
+
+To destroy only the instance (keep the filesystem/model cache):
+
+```bash
+terraform destroy -target=lambdalabs_instance.reranker
+```
+
+### Deleting the filesystem
+
+The Lambda filesystem API can return “still mounted” for a short time after an instance is destroyed.
+If you need to delete the filesystem, do it manually in the Lambda console after confirming it is not
+attached to any instance.
+
+If you previously managed the filesystem in this Terraform state, stop Terraform from trying to delete it:
+
+```bash
+terraform state rm lambdalabs_filesystem.model_cache[0]
+```
 
 ## Troubleshooting
 
@@ -323,6 +350,18 @@ sudo journalctl -u qwen3-reranker -f
 | Data Transfer | Included in Lambda pricing |
 
 **Tip**: Remember to `terraform destroy` when not using the instance!
+
+## Provider Notes (LambdaLabs Terraform)
+
+The `elct9620/lambdalabs` provider can be flaky around filesystem lifecycle (delete/update often fails if the API still
+considers it “mounted”).
+
+This repo now treats the filesystem as an external persistent resource and only **attaches it by name** to the instance.
+If you upgraded from an older version that managed the filesystem in Terraform state, run:
+
+```bash
+terraform -chdir=infrastructure/terraform state rm lambdalabs_filesystem.model_cache[0]
+```
 
 ## Files Reference
 

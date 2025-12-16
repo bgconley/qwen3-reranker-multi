@@ -145,6 +145,10 @@ sudo systemctl enable --now tailscaled
 EXISTING_IP="$(tailscale ip -4 2>/dev/null || true)"
 if [ -n "$EXISTING_IP" ]; then
     log_info "Tailscale already connected. IP: ${EXISTING_IP}"
+    EXISTING_DNS="$(tailscale status --json 2>/dev/null | jq -r '.Self.DNSName' 2>/dev/null || true)"
+    if [ -n "$EXISTING_DNS" ] && [ "$EXISTING_DNS" != "null" ]; then
+        log_info "Tailscale DNS: ${EXISTING_DNS}"
+    fi
 else
     # Build the tailscale up command
     TAILSCALE_ARGS=(up "--auth-key=${TAILSCALE_AUTH_KEY}" "--hostname=${TAILSCALE_HOSTNAME}" "--ssh")
@@ -169,6 +173,10 @@ else
 
     TAILSCALE_IP="${TAILSCALE_IP:-pending}"
     log_info "Tailscale connected. IP: ${TAILSCALE_IP}"
+    TAILSCALE_DNS="$(tailscale status --json 2>/dev/null | jq -r '.Self.DNSName' 2>/dev/null || true)"
+    if [ -n "$TAILSCALE_DNS" ] && [ "$TAILSCALE_DNS" != "null" ]; then
+        log_info "Tailscale DNS: ${TAILSCALE_DNS}"
+    fi
 fi
 
 # Cleanup one-time auth key material if we were given a temp file.
@@ -273,7 +281,7 @@ if [ -n "$FILESYSTEM_NAME" ]; then
     # Wait for filesystem to be mounted (Lambda mounts automatically, but mountpoint can vary)
     MOUNT_WAIT=0
     while [ $MOUNT_WAIT -lt 60 ]; do
-        for candidate in "/home/ubuntu/${FILESYSTEM_NAME}" "/mnt/${FILESYSTEM_NAME}"; do
+        for candidate in "/lambda/nfs/${FILESYSTEM_NAME}" "/home/ubuntu/${FILESYSTEM_NAME}" "/mnt/${FILESYSTEM_NAME}"; do
             if [ -d "$candidate" ]; then
                 FILESYSTEM_MOUNT="$candidate"
                 break 2
@@ -297,6 +305,7 @@ if [ -n "$FILESYSTEM_NAME" ]; then
         HF_CACHE_DIR="${FILESYSTEM_MOUNT}/huggingface"
         mkdir -p "${HF_CACHE_DIR}"
         sudo chown -R ubuntu:ubuntu "${HF_CACHE_DIR}" || true
+        chmod 700 "${HF_CACHE_DIR}" || true
         log_info "Filesystem mounted at ${FILESYSTEM_MOUNT}"
         log_info "HuggingFace cache directory: ${HF_CACHE_DIR}"
 
@@ -422,12 +431,30 @@ fi
 
 log_info "Reranker service is ready!"
 
+# Extra diagnostics: confirm the port is listening and reachable over the tailnet IP.
+log_info "Verifying health endpoints..."
+curl -sf --max-time 5 "http://127.0.0.1:${RERANKER_PORT}/health" >/dev/null || {
+    log_error "Local health check failed (localhost). Dumping recent logs..."
+    sudo journalctl -u qwen3-reranker -n 200 --no-pager || true
+    exit 1
+}
+if command -v ss >/dev/null 2>&1; then
+    ss -lntp 2>/dev/null | grep -F ":${RERANKER_PORT} " >/dev/null || log_warn "Port ${RERANKER_PORT} not found in ss output (unexpected)"
+fi
+if [ -n "${TAILSCALE_IP:-}" ] && [ "${TAILSCALE_IP}" != "unknown" ] && [ "${TAILSCALE_IP}" != "pending" ]; then
+    curl -sf --max-time 5 "http://${TAILSCALE_IP}:${RERANKER_PORT}/health" >/dev/null || log_warn "Health check via Tailscale IP failed; check tailnet ACLs/firewall"
+fi
+
 # =============================================================================
 # Final Summary
 # =============================================================================
 
 # Get the final Tailscale IP
 TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "unknown")
+TAILSCALE_DNS="$(tailscale status --json 2>/dev/null | jq -r '.Self.DNSName' 2>/dev/null || true)"
+if [ "$TAILSCALE_DNS" = "null" ]; then
+    TAILSCALE_DNS=""
+fi
 
 echo ""
 echo "============================================================"
@@ -435,6 +462,9 @@ echo "  Qwen3-Reranker Setup Complete!"
 echo "============================================================"
 echo ""
 echo "  Tailscale Hostname: ${TAILSCALE_HOSTNAME}"
+if [ -n "$TAILSCALE_DNS" ]; then
+echo "  Tailscale DNS:      ${TAILSCALE_DNS}"
+fi
 echo "  Tailscale IP:       ${TAILSCALE_IP}"
 echo "  Service Port:       ${RERANKER_PORT}"
 if [ -n "$HF_CACHE_DIR" ]; then
