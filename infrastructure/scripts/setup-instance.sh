@@ -86,10 +86,8 @@ if [ -z "$TAILSCALE_AUTH_KEY" ] && [ -n "$TAILSCALE_AUTH_KEY_FILE" ]; then
     fi
     TAILSCALE_AUTH_KEY="$(tr -d '\n' < "$TAILSCALE_AUTH_KEY_FILE")"
 fi
-
 if [ -z "$TAILSCALE_AUTH_KEY" ]; then
-    log_error "TAILSCALE_AUTH_KEY is required but not set"
-    exit 1
+    log_warn "TAILSCALE_AUTH_KEY not provided; will skip tailnet join if already connected. If not connected, setup will fail in Step 2."
 fi
 
 log_info "Starting Qwen3-Reranker setup..."
@@ -150,6 +148,11 @@ if [ -n "$EXISTING_IP" ]; then
         log_info "Tailscale DNS: ${EXISTING_DNS}"
     fi
 else
+    if [ -z "$TAILSCALE_AUTH_KEY" ]; then
+        log_error "Tailscale is not connected and no auth key was provided (TAILSCALE_AUTH_KEY or TAILSCALE_AUTH_KEY_FILE)."
+        exit 1
+    fi
+
     # Build the tailscale up command
     TAILSCALE_ARGS=(up "--auth-key=${TAILSCALE_AUTH_KEY}" "--hostname=${TAILSCALE_HOSTNAME}" "--ssh")
 
