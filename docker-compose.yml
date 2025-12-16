@@ -1,0 +1,70 @@
+# Docker Compose for Qwen3-Reranker Multi-Backend Service
+# Use for local development and testing
+
+version: '3.8'
+
+services:
+  # PyTorch CUDA backend (recommended for production)
+  qwen3-reranker-cuda:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9003:9003"
+    environment:
+      - QWEN_RERANK_BACKEND=pytorch
+      - QWEN_RERANK_PROFILE=qwen3_4b_cuda
+      - QWEN_RERANK_HOST=0.0.0.0
+      - QWEN_RERANK_PORT=9003
+      - QWEN_RERANK_LOG_LEVEL=INFO
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    restart: unless-stopped
+
+  # vLLM backend (high-throughput)
+  qwen3-reranker-vllm:
+    build:
+      context: .
+      dockerfile: Dockerfile.vllm
+    ports:
+      - "9004:9003"
+    environment:
+      - QWEN_RERANK_BACKEND=vllm
+      - QWEN_RERANK_PROFILE=qwen3_4b_vllm
+      - QWEN_RERANK_HOST=0.0.0.0
+      - QWEN_RERANK_PORT=9003
+      - QWEN_RERANK_LOG_LEVEL=INFO
+      - VLLM_WORKER_MULTIPROC_METHOD=spawn
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    restart: unless-stopped
+    profiles:
+      - vllm
+
+# Networks
+networks:
+  default:
+    name: qwen3-reranker-network

@@ -1,0 +1,138 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qwen3-reranker"
+version = "0.2.0"
+description = "Multi-backend Qwen3-Reranker-4B HTTP service for document reranking"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Brennan Conley"}
+]
+keywords = ["reranker", "qwen3", "pytorch", "vllm", "mlx", "rag", "cuda"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Core dependencies (cross-platform, no backend-specific)
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    "pyyaml>=6.0.2",
+    "structlog>=24.4.0",
+    "orjson>=3.10.0",
+    "httpx>=0.28.0",
+    "numpy>=1.26.0",
+]
+
+[project.optional-dependencies]
+# PyTorch backend (PRIMARY) - Cross-platform CUDA/MPS/CPU
+pytorch = [
+    "torch>=2.4.0",
+    "transformers>=4.45.0",
+    "accelerate>=1.0.0",
+]
+
+# PyTorch with CUDA-specific optimizations (for Lambda Cloud)
+cuda = [
+    "torch>=2.4.0",
+    "transformers>=4.45.0",
+    "accelerate>=1.0.0",
+    "flash-attn>=2.6.0; platform_system == 'Linux'",
+]
+
+# vLLM backend (SECONDARY) - High-throughput CUDA
+vllm = [
+    "torch>=2.4.0",
+    "transformers>=4.45.0",
+    "vllm>=0.6.0",
+]
+
+# MLX backend (TERTIARY) - Apple Silicon optimization
+mlx = [
+    "mlx>=0.21.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "mlx-lm>=0.21.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "transformers>=4.45.0",
+]
+
+# All backends
+all = [
+    "torch>=2.4.0",
+    "transformers>=4.45.0",
+    "accelerate>=1.0.0",
+    "vllm>=0.6.0; platform_system == 'Linux'",
+    "mlx>=0.21.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "mlx-lm>=0.21.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "types-PyYAML>=6.0.12",
+]
+
+[project.urls]
+Repository = "https://github.com/brennanconley/qwen3-reranker-multi"
+
+[project.scripts]
+qwen3-reranker = "qwen3_reranker.api.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qwen3_reranker"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "C901",   # too complex
+    "ARG001", # unused function argument
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["qwen3_reranker"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v --tb=short"

@@ -1,0 +1,19 @@
+# Development runtime configuration
+# These values are defaults; env vars override them
+
+service:
+  host: "127.0.0.1"
+  port: 9003
+  log_level: "INFO"
+  log_format: "json"  # "json" or "console"
+
+# Active profile from reranker_profiles.yaml
+profile: "qwen3_4b_mlx_fp16"
+
+# Request timeouts (seconds)
+timeouts:
+  request: 120.0
+  warmup: 300.0
+
+# Correlation ID header name
+correlation_header: "X-Correlation-Id"

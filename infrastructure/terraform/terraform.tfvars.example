@@ -1,0 +1,78 @@
+# Terraform variables for Lambda Cloud deployment
+# Copy this file to terraform.tfvars and fill in your values
+#
+# SECURITY: Never commit terraform.tfvars to version control!
+#           It contains sensitive credentials.
+
+# =============================================================================
+# Required Variables
+# =============================================================================
+
+# Name of the SSH key you've uploaded to Lambda Cloud
+# Create/view keys at: https://cloud.lambdalabs.com/ssh-keys
+ssh_key_name = "your-ssh-key-name"
+
+# Path to your local SSH private key (for Terraform provisioning)
+ssh_private_key_path = "~/.ssh/id_ed25519"
+
+# Tailscale auth key for unattended setup
+# Generate at: https://login.tailscale.com/admin/settings/keys
+# Recommended settings:
+#   - Reusable: No (one-time use)
+#   - Ephemeral: Yes (auto-remove when instance terminates)
+#   - Pre-approved: Yes (skip manual device approval)
+#   - Tags: tag:servers (optional, for ACL policies)
+tailscale_auth_key = "tskey-auth-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# =============================================================================
+# Optional: Instance Configuration
+# =============================================================================
+
+# Instance name (appears in Lambda Cloud dashboard and Tailscale)
+instance_name = "qwen3-reranker"
+
+# GPU instance type
+# Options: gpu_1x_a10, gpu_1x_h100_pcie, gpu_1x_a100_sxm, gpu_8x_a100_sxm, etc.
+# See: https://docs.lambda.ai/public-cloud/on-demand/
+instance_type = "gpu_1x_a10"
+
+# Region
+# Options: us-west-1, us-east-1, us-south-1, europe-central-1, asia-northeast-1
+region = "us-west-1"
+
+# =============================================================================
+# Optional: Reranker Configuration
+# =============================================================================
+
+# Reranker profile (from config/reranker_profiles.yaml)
+# Options: qwen3_4b_cuda, qwen3_4b_vllm, qwen3_4b_mps, etc.
+reranker_profile = "qwen3_4b_cuda"
+
+# Backend to use
+# Options: pytorch (recommended), vllm, auto
+reranker_backend = "pytorch"
+
+# Port for the reranker service
+reranker_port = 9003
+
+# =============================================================================
+# Optional: Git Repository
+# =============================================================================
+
+# Git repository to clone (update to your fork/repo)
+git_repo_url = "https://github.com/yourusername/qwen3-reranker-multi.git"
+
+# Branch to checkout
+git_branch = "main"
+
+# =============================================================================
+# Optional: Tailscale Configuration
+# =============================================================================
+
+# Hostname for the Tailscale node (used in MagicDNS)
+# Access the reranker at: http://<tailscale_hostname>:9003
+tailscale_hostname = "qwen3-reranker"
+
+# Tailscale tags (requires ACL configuration in your tailnet)
+# Example: ["tag:servers", "tag:gpu"]
+tailscale_tags = []

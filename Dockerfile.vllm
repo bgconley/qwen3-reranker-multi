@@ -1,0 +1,42 @@
+# Qwen3-Reranker Multi-Backend Service - vLLM Dockerfile
+# High-throughput CUDA deployment with vLLM backend
+
+# Use vLLM base image for optimized inference
+FROM vllm/vllm-openai:v0.6.4.post1 AS base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Copy project files
+WORKDIR /app
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+COPY config/ ./config/
+
+# Install the package (vLLM dependencies already in base image)
+RUN pip install --no-cache-dir -e "."
+
+# Set environment variables for Qwen3 Reranker
+ENV QWEN_RERANK_HOST=0.0.0.0
+ENV QWEN_RERANK_PORT=9003
+ENV QWEN_RERANK_BACKEND=vllm
+ENV QWEN_RERANK_PROFILE=qwen3_4b_vllm
+ENV QWEN_RERANK_LOG_LEVEL=INFO
+ENV QWEN_RERANK_LOG_FORMAT=json
+
+# vLLM configuration
+ENV VLLM_WORKER_MULTIPROC_METHOD=spawn
+
+# Trust remote code for Qwen models
+ENV TRANSFORMERS_TRUST_REMOTE_CODE=1
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=300s --retries=3 \
+    CMD curl -f http://localhost:9003/health || exit 1
+
+# Expose port
+EXPOSE 9003
+
+# Run the service
+CMD ["python", "-m", "qwen3_reranker.api.app"]

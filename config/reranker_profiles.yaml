@@ -1,0 +1,350 @@
+# Qwen3 Reranker Service Profiles
+# Compatible with wekadocs-matrix reranker provider interface
+#
+# Backend Priority:
+#   1. PyTorch (PRIMARY) - Cross-platform CUDA/MPS/CPU
+#   2. vLLM (SECONDARY) - High-throughput CUDA
+#   3. MLX (TERTIARY) - Apple Silicon optimization
+#
+# Each profile defines a model configuration with prompt templates,
+# scoring method, and operational limits.
+
+profiles:
+  # ============================================
+  # PyTorch Profiles (PRIMARY - Cross-platform)
+  # ============================================
+
+  qwen3_4b_cuda:
+    description: "Qwen3 reranker 4B on CUDA (PyTorch + Flash Attention) - RECOMMENDED"
+    backend: "pytorch"
+    model_id: "Qwen/Qwen3-Reranker-4B"
+
+    scoring:
+      method: "yes_no_next_token_prob"
+      yes_token: "yes"
+      no_token: "no"
+      prefix: |
+        <|im_start|>system
+        Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>
+        <|im_start|>user
+
+      query_template: "<Instruct>: {instruction}\n<Query>: {query}\n<Document>: {doc}"
+      suffix: |+
+        <|im_end|>
+        <|im_start|>assistant
+        <think>
+
+        </think>
+
+    limits:
+      max_length: 8192
+      max_length_hard_cap: 16384
+      max_docs_per_request: 500
+      max_query_chars: 16000
+      max_doc_chars: 40000
+
+    batching:
+      batch_size: 16
+      max_concurrent_forwards: 2
+
+    pytorch_options:
+      device: "auto"
+      dtype: "float16"
+      use_flash_attn: true
+
+    defaults:
+      instruction: "Given a web search query, retrieve relevant passages that answer the query"
+
+  qwen3_4b_mps:
+    description: "Qwen3 reranker 4B on MPS (Apple Silicon via PyTorch)"
+    backend: "pytorch"
+    model_id: "Qwen/Qwen3-Reranker-4B"
+
+    scoring:
+      method: "yes_no_next_token_prob"
+      yes_token: "yes"
+      no_token: "no"
+      prefix: |
+        <|im_start|>system
+        Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>
+        <|im_start|>user
+
+      query_template: "<Instruct>: {instruction}\n<Query>: {query}\n<Document>: {doc}"
+      suffix: |+
+        <|im_end|>
+        <|im_start|>assistant
+        <think>
+
+        </think>
+
+    limits:
+      max_length: 4096
+      max_length_hard_cap: 8192
+      max_docs_per_request: 200
+      max_query_chars: 8000
+      max_doc_chars: 20000
+
+    batching:
+      batch_size: 8
+      max_concurrent_forwards: 1
+
+    pytorch_options:
+      device: "mps"
+      dtype: "float16"
+      use_flash_attn: false
+
+    defaults:
+      instruction: "Given a web search query, retrieve relevant passages that answer the query"
+
+  qwen3_4b_cpu:
+    description: "Qwen3 reranker 4B on CPU (fallback)"
+    backend: "pytorch"
+    model_id: "Qwen/Qwen3-Reranker-4B"
+
+    scoring:
+      method: "yes_no_next_token_prob"
+      yes_token: "yes"
+      no_token: "no"
+      prefix: |
+        <|im_start|>system
+        Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>
+        <|im_start|>user
+
+      query_template: "<Instruct>: {instruction}\n<Query>: {query}\n<Document>: {doc}"
+      suffix: |+
+        <|im_end|>
+        <|im_start|>assistant
+        <think>
+
+        </think>
+
+    limits:
+      max_length: 2048
+      max_length_hard_cap: 4096
+      max_docs_per_request: 50
+      max_query_chars: 4000
+      max_doc_chars: 10000
+
+    batching:
+      batch_size: 4
+      max_concurrent_forwards: 1
+
+    pytorch_options:
+      device: "cpu"
+      dtype: "float32"
+      use_flash_attn: false
+
+    defaults:
+      instruction: "Given a web search query, retrieve relevant passages that answer the query"
+
+  # ============================================
+  # vLLM Profiles (SECONDARY - High-throughput CUDA)
+  # ============================================
+
+  qwen3_4b_vllm:
+    description: "Qwen3 reranker 4B via vLLM (high-throughput CUDA)"
+    backend: "vllm"
+    model_id: "Qwen/Qwen3-Reranker-4B"
+
+    scoring:
+      method: "yes_no_next_token_prob"
+      yes_token: "yes"
+      no_token: "no"
+      prefix: |
+        <|im_start|>system
+        Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>
+        <|im_start|>user
+
+      query_template: "<Instruct>: {instruction}\n<Query>: {query}\n<Document>: {doc}"
+      suffix: |+
+        <|im_end|>
+        <|im_start|>assistant
+        <think>
+
+        </think>
+
+    limits:
+      max_length: 8192
+      max_length_hard_cap: 16384
+      max_docs_per_request: 1000
+      max_query_chars: 16000
+      max_doc_chars: 40000
+
+    batching:
+      batch_size: 64
+      max_concurrent_forwards: 4
+
+    vllm_options:
+      tensor_parallel_size: 1
+      gpu_memory_utilization: 0.85
+      enable_prefix_caching: true
+      max_model_len: 16384
+
+    defaults:
+      instruction: "Given a web search query, retrieve relevant passages that answer the query"
+
+  qwen3_4b_vllm_multi_gpu:
+    description: "Qwen3 reranker 4B via vLLM (multi-GPU tensor parallelism)"
+    backend: "vllm"
+    model_id: "Qwen/Qwen3-Reranker-4B"
+
+    scoring:
+      method: "yes_no_next_token_prob"
+      yes_token: "yes"
+      no_token: "no"
+      prefix: |
+        <|im_start|>system
+        Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>
+        <|im_start|>user
+
+      query_template: "<Instruct>: {instruction}\n<Query>: {query}\n<Document>: {doc}"
+      suffix: |+
+        <|im_end|>
+        <|im_start|>assistant
+        <think>
+
+        </think>
+
+    limits:
+      max_length: 16384
+      max_length_hard_cap: 32768
+      max_docs_per_request: 2000
+      max_query_chars: 32000
+      max_doc_chars: 80000
+
+    batching:
+      batch_size: 128
+      max_concurrent_forwards: 8
+
+    vllm_options:
+      tensor_parallel_size: 2
+      gpu_memory_utilization: 0.9
+      enable_prefix_caching: true
+      max_model_len: 32768
+
+    defaults:
+      instruction: "Given a web search query, retrieve relevant passages that answer the query"
+
+  # ============================================
+  # MLX Profiles (TERTIARY - Apple Silicon)
+  # ============================================
+
+  qwen3_4b_mlx_fp16:
+    description: "Qwen3 reranker 4B in MLX FP16 (Apple Silicon optimization)"
+    backend: "mlx"
+    model_id: "Lipdog/Qwen3-Reranker-4B-mlx-fp16"
+    hf_tokenizer_id: "Qwen/Qwen3-Reranker-4B"
+
+    scoring:
+      method: "yes_no_next_token_prob"
+      yes_token: "yes"
+      no_token: "no"
+      prefix: |
+        <|im_start|>system
+        Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>
+        <|im_start|>user
+
+      query_template: "<Instruct>: {instruction}\n<Query>: {query}\n<Document>: {doc}"
+      suffix: |+
+        <|im_end|>
+        <|im_start|>assistant
+        <think>
+
+        </think>
+
+    limits:
+      max_length: 4096
+      max_length_hard_cap: 8192
+      max_docs_per_request: 200
+      max_query_chars: 8000
+      max_doc_chars: 20000
+
+    batching:
+      batch_size: 8
+      max_concurrent_forwards: 1
+
+    mlx_options:
+      compile: true
+
+    defaults:
+      instruction: "Given a web search query, retrieve relevant passages that answer the query"
+
+  qwen3_4b_mlx_8bit:
+    description: "Qwen3 reranker 4B in MLX 8-bit (lower memory)"
+    backend: "mlx"
+    model_id: "Lipdog/Qwen3-Reranker-4B-mlx-8bit"
+    hf_tokenizer_id: "Qwen/Qwen3-Reranker-4B"
+
+    scoring:
+      method: "yes_no_next_token_prob"
+      yes_token: "yes"
+      no_token: "no"
+      prefix: |
+        <|im_start|>system
+        Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>
+        <|im_start|>user
+
+      query_template: "<Instruct>: {instruction}\n<Query>: {query}\n<Document>: {doc}"
+      suffix: |+
+        <|im_end|>
+        <|im_start|>assistant
+        <think>
+
+        </think>
+
+    limits:
+      max_length: 4096
+      max_length_hard_cap: 8192
+      max_docs_per_request: 200
+      max_query_chars: 8000
+      max_doc_chars: 20000
+
+    batching:
+      batch_size: 12
+      max_concurrent_forwards: 1
+
+    mlx_options:
+      compile: true
+
+    defaults:
+      instruction: "Given a web search query, retrieve relevant passages that answer the query"
+
+  qwen3_4b_mlx_4bit:
+    description: "Qwen3 reranker 4B in MLX 4-bit (minimum memory)"
+    backend: "mlx"
+    model_id: "vserifsaglam/Qwen3-Reranker-4B-4bit-MLX"
+    hf_tokenizer_id: "Qwen/Qwen3-Reranker-4B"
+
+    scoring:
+      method: "yes_no_next_token_prob"
+      yes_token: "yes"
+      no_token: "no"
+      prefix: |
+        <|im_start|>system
+        Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>
+        <|im_start|>user
+
+      query_template: "<Instruct>: {instruction}\n<Query>: {query}\n<Document>: {doc}"
+      suffix: |+
+        <|im_end|>
+        <|im_start|>assistant
+        <think>
+
+        </think>
+
+    limits:
+      max_length: 4096
+      max_length_hard_cap: 8192
+      max_docs_per_request: 300
+      max_query_chars: 8000
+      max_doc_chars: 20000
+
+    batching:
+      batch_size: 16
+      max_concurrent_forwards: 1
+
+    mlx_options:
+      compile: true
+
+    defaults:
+      instruction: "Given a web search query, retrieve relevant passages that answer the query"
