@@ -21,6 +21,18 @@ variable "tailscale_auth_key" {
   description = "Tailscale auth key for unattended setup (from https://login.tailscale.com/admin/settings/keys)"
   type        = string
   sensitive   = true
+  default     = ""
+
+  validation {
+    condition     = var.tailscale_auth_key != "" || var.tailscale_auth_key_path != ""
+    error_message = "Either tailscale_auth_key or tailscale_auth_key_path must be set."
+  }
+}
+
+variable "tailscale_auth_key_path" {
+  description = "Path to a local file containing the Tailscale auth key (preferred over tailscale_auth_key to avoid storing it in Terraform state)"
+  type        = string
+  default     = ""
 }
 
 variable "ssh_private_key_path" {
@@ -120,4 +132,3 @@ variable "filesystem_name" {
   type        = string
   default     = "qwen3-reranker-cache"
 }
-

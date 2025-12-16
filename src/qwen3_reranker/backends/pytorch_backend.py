@@ -103,7 +103,13 @@ class PyTorchBackend:
         # Determine dtype and attention implementation based on device
         if self._device.type == "cuda":
             self._dtype = kwargs.get("dtype", torch.float16)
-            use_flash = kwargs.get("use_flash_attn", self._supports_flash_attn())
+            requested_flash = kwargs.get("use_flash_attn")
+            supports_flash = self._supports_flash_attn()
+            use_flash = supports_flash if requested_flash is None else (requested_flash and supports_flash)
+            if requested_flash and not supports_flash:
+                logger.warning(
+                    "Flash Attention requested but not available; falling back to eager attention."
+                )
             attn_impl = "flash_attention_2" if use_flash else "eager"
             if use_flash:
                 logger.info("Using Flash Attention 2 (CUDA)")

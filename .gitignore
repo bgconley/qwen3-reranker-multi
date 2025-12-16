@@ -69,7 +69,6 @@ temp/
 
 # Terraform
 infrastructure/terraform/.terraform/
-infrastructure/terraform/.terraform.lock.hcl
 infrastructure/terraform/*.tfstate
 infrastructure/terraform/*.tfstate.*
 infrastructure/terraform/terraform.tfvars

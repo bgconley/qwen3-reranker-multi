@@ -22,7 +22,17 @@ ssh_private_key_path = "~/.ssh/id_ed25519"
 #   - Ephemeral: Yes (auto-remove when instance terminates)
 #   - Pre-approved: Yes (skip manual device approval)
 #   - Tags: tag:servers (optional, for ACL policies)
-tailscale_auth_key = "tskey-auth-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#
+# Preferred: put the key in a local file and point Terraform at it so it never
+# ends up in Terraform state.
+# Example:
+#   mkdir -p ~/.config/qwen3-reranker
+#   printf '%s' 'tskey-auth-xxxxxxxx...' > ~/.config/qwen3-reranker/tailscale-auth-key
+#   chmod 600 ~/.config/qwen3-reranker/tailscale-auth-key
+tailscale_auth_key_path = "~/.config/qwen3-reranker/tailscale-auth-key"
+
+# Fallback (less secure; stored in Terraform state):
+# tailscale_auth_key = "tskey-auth-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 # =============================================================================
 # Optional: Instance Configuration

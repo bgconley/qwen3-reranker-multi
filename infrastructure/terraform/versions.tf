@@ -9,6 +9,10 @@ terraform {
       source  = "elct9620/lambdalabs"
       version = "~> 0.8"
     }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.2"
+    }
   }
 }
 

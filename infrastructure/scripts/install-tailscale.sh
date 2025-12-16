@@ -61,6 +61,13 @@ log_info "Starting tailscaled service..."
 sudo systemctl enable tailscaled
 sudo systemctl start tailscaled
 
+# jq is optional but improves status parsing
+if ! command -v jq &> /dev/null; then
+    log_info "Installing jq for status parsing..."
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq jq
+fi
+
 # Wait for tailscaled to be ready
 sleep 2
 

@@ -150,15 +150,21 @@ class VLLMBackend:
 
         batch_size = input_ids.shape[0]
 
-        # Convert input_ids to list of token ID lists for vLLM
-        prompt_token_ids = [ids.tolist() for ids in input_ids]
+        # vLLM does not accept an attention mask here, so we must strip padding tokens.
+        # Our tokenizer left-pads; the real tokens are the last `sum(mask)` positions.
+        prompt_token_ids: list[list[int]] = []
+        for i in range(batch_size):
+            length = int(np.sum(attention_mask[i]))
+            if length <= 0:
+                raise ValueError("Empty sequence after applying attention_mask")
+            prompt_token_ids.append(input_ids[i, -length:].tolist())
 
         # Configure sampling to get logprobs for yes/no tokens
-        # We request 1 token with top_logprobs covering the vocab
+        # NOTE: vLLM returns *top-k* logprobs; we require that both yes/no appear.
         sampling_params = SamplingParams(
             max_tokens=1,
             temperature=0.0,  # Deterministic
-            logprobs=50000,  # Request all logprobs (vocab size)
+            logprobs=20,
             prompt_logprobs=None,
         )
 
@@ -170,21 +176,36 @@ class VLLMBackend:
         )
 
         # Extract logits from logprobs
-        # vLLM returns log probabilities, we need to reconstruct logits
+        # vLLM returns normalized log probabilities; for a softmax over [no, yes]
+        # the shared normalization constant cancels, so logprobs work as logits.
         vocab_size = len(self._tokenizer)
         logits = np.full((batch_size, vocab_size), -1e9, dtype=np.float32)
 
+        missing_yes = 0
+        missing_no = 0
         for i, output in enumerate(outputs):
             if output.outputs and output.outputs[0].logprobs:
                 # Get the logprobs dict for the first generated token position
                 token_logprobs = output.outputs[0].logprobs[0]
-                for token_id, logprob_obj in token_logprobs.items():
-                    if 0 <= token_id < vocab_size:
-                        # Convert logprob back to logit (unnormalized)
-                        # Note: This is an approximation since we don't have the
-                        # normalization constant, but for softmax over yes/no only
-                        # the relative values matter
-                        logits[i, token_id] = logprob_obj.logprob
+                if self._yes_token_id in token_logprobs:
+                    logits[i, self._yes_token_id] = token_logprobs[
+                        self._yes_token_id
+                    ].logprob
+                else:
+                    missing_yes += 1
+                if self._no_token_id in token_logprobs:
+                    logits[i, self._no_token_id] = token_logprobs[
+                        self._no_token_id
+                    ].logprob
+                else:
+                    missing_no += 1
+
+        if missing_yes or missing_no:
+            raise RuntimeError(
+                "vLLM logprobs did not include required yes/no tokens; "
+                "increase SamplingParams.logprobs or use the PyTorch backend. "
+                f"(missing_yes={missing_yes}, missing_no={missing_no})"
+            )
 
         return logits
 

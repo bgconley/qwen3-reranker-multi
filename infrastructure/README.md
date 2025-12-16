@@ -93,7 +93,7 @@ cd infrastructure/terraform
 cp terraform.tfvars.example terraform.tfvars
 
 # Edit with your credentials
-# REQUIRED: ssh_key_name, tailscale_auth_key
+# REQUIRED: ssh_key_name, and either tailscale_auth_key_path (preferred) or tailscale_auth_key
 nano terraform.tfvars  # or use your preferred editor
 ```
 
@@ -143,6 +143,24 @@ curl -X POST http://qwen3-reranker:9003/v1/rerank \
     ]
   }'
 ```
+
+### 4b. Verify Persistent Filesystem (Recommended)
+
+If `create_filesystem = true`, the setup script writes a sentinel file into the
+HuggingFace cache directory on the persistent filesystem.
+
+1. On the first deploy, confirm the sentinel was written:
+   - SSH in and check `/tmp/setup-instance.log` for `Persistence sentinel written`
+2. Destroy only the instance (keep the filesystem):
+   ```bash
+   terraform destroy -target=lambdalabs_instance.reranker
+   ```
+3. Recreate the instance:
+   ```bash
+   terraform apply
+   ```
+4. Confirm persistence:
+   - `/tmp/setup-instance.log` should contain `Persistence sentinel found`
 
 ### 5. Configure wekadocs-matrix
 

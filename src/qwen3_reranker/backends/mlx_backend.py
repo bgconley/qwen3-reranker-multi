@@ -132,8 +132,23 @@ class MLXBackend:
         """
         import mlx.core as mx
 
-        # Convert to MLX array
-        tokens = mx.array(input_ids)
+        batch_size = input_ids.shape[0]
+
+        # MLX models typically don't use attention_mask. Our tokenizer left-pads,
+        # so we rebuild a right-padded batch to avoid padding influencing logits.
+        lengths = attention_mask.sum(axis=1).astype(int)
+        if np.any(lengths <= 0):
+            raise ValueError("Empty sequence after applying attention_mask")
+
+        max_len = int(np.max(lengths))
+        pad_token_id = int(self._tokenizer.pad_token_id)
+
+        right_padded = np.full((batch_size, max_len), pad_token_id, dtype=np.int64)
+        for i in range(batch_size):
+            seq = input_ids[i, -lengths[i] :]
+            right_padded[i, : lengths[i]] = seq
+
+        tokens = mx.array(right_padded)
 
         # Forward pass (use compiled version if available)
         if self._compiled_forward is not None:
@@ -141,9 +156,10 @@ class MLXBackend:
         else:
             logits = self._model(tokens)
 
-        # Extract last position logits
-        # With left-padding, -1 is always the actual last token
-        last_logits = logits[:, -1, :]
+        # Extract logits at the last *real* token position for each row.
+        last_positions = mx.array(lengths - 1)
+        batch_idx = mx.arange(batch_size)
+        last_logits = logits[batch_idx, last_positions, :]
 
         # Ensure computation is complete before converting
         mx.eval(last_logits)

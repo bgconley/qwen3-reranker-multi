@@ -87,7 +87,7 @@ async def acquire_forward_slot(timeout: float = 60.0) -> bool:
     try:
         await asyncio.wait_for(semaphore.acquire(), timeout=timeout)
         return True
-    except TimeoutError:
+    except asyncio.TimeoutError:
         raise ConcurrencyLimitError(
             "Timed out waiting for forward pass slot",
             {"timeout_seconds": timeout},
@@ -215,8 +215,10 @@ async def rerank_documents(
         await acquire_forward_slot(timeout=forward_timeout)
 
         try:
-            # Process batch (synchronous computation)
-            result = process_batch_sync(backend, tokenizer, scorer, batch)
+            # Process batch off the event loop thread to keep health endpoints responsive.
+            result = await asyncio.to_thread(
+                process_batch_sync, backend, tokenizer, scorer, batch
+            )
             all_scores.extend(result.scores)
             total_truncated += result.truncated_count
         finally:

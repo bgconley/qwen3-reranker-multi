@@ -39,6 +39,11 @@ output "ssh_command" {
   value       = "ssh ubuntu@${lambdalabs_instance.reranker.ip}"
 }
 
+output "setup_log_tail_command" {
+  description = "SSH command to view the setup script log on the instance"
+  value       = "ssh ubuntu@${lambdalabs_instance.reranker.ip} 'sudo tail -n 200 /tmp/setup-instance.log'"
+}
+
 # =============================================================================
 # Tailscale Information
 # =============================================================================
@@ -88,7 +93,7 @@ output "filesystem_id" {
 
 output "filesystem_mount_point" {
   description = "Mount point for the persistent filesystem"
-  value       = var.create_filesystem ? "/home/ubuntu/${var.filesystem_name}" : "none"
+  value       = var.create_filesystem ? "auto-detected on instance (see /tmp/setup-instance.log)" : "none"
 }
 
 # =============================================================================
@@ -112,8 +117,8 @@ output "quick_reference" {
 
     Persistent Storage:
       Filesystem: ${var.create_filesystem ? var.filesystem_name : "none (ephemeral)"}
-      Mount Point: ${var.create_filesystem ? "/home/ubuntu/${var.filesystem_name}" : "N/A"}
-      HF Cache: ${var.create_filesystem ? "/home/ubuntu/${var.filesystem_name}/huggingface" : "~/.cache/huggingface (ephemeral)"}
+      Mount Point: ${var.create_filesystem ? "auto-detected on instance (see /tmp/setup-instance.log)" : "N/A"}
+      HF Cache: ${var.create_filesystem ? "auto-detected on instance (see /tmp/setup-instance.log)" : "~/.cache/huggingface (ephemeral)"}
 
     Health Check:
       curl http://${var.tailscale_hostname}:${var.reranker_port}/health
@@ -131,6 +136,12 @@ output "quick_reference" {
 
     View service logs:
       ssh ubuntu@${lambdalabs_instance.reranker.ip} 'sudo journalctl -u qwen3-reranker -f'
+
+    View setup logs (provisioning):
+      ssh ubuntu@${lambdalabs_instance.reranker.ip} 'sudo tail -n 200 /tmp/setup-instance.log'
+
+    Verify filesystem persistence (sentinel):
+      ssh ubuntu@${lambdalabs_instance.reranker.ip} 'grep -E \"Persistence sentinel\" /tmp/setup-instance.log | tail -n 5'
 
     ============================================================
   EOT
