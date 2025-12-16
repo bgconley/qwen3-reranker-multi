@@ -20,6 +20,11 @@
 
 set -euo pipefail
 
+# Log everything to a file for debugging (Terraform suppresses output due to sensitive values)
+LOGFILE="/tmp/setup-instance.log"
+exec > >(tee -a "$LOGFILE") 2>&1
+echo "=== Setup started at $(date) ===" >> "$LOGFILE"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'

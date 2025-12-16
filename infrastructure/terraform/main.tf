@@ -47,7 +47,9 @@ resource "lambdalabs_instance" "reranker" {
   }
 
   # Run the setup script with environment variables
+  # on_failure = continue keeps instance alive for debugging if provisioning fails
   provisioner "remote-exec" {
+    on_failure = continue
     inline = [
       "chmod +x /tmp/setup-instance.sh",
       "TAILSCALE_AUTH_KEY='${var.tailscale_auth_key}' TAILSCALE_HOSTNAME='${var.tailscale_hostname}' TAILSCALE_TAGS='${join(",", var.tailscale_tags)}' GIT_REPO_URL='${var.git_repo_url}' GIT_BRANCH='${var.git_branch}' RERANKER_PROFILE='${var.reranker_profile}' RERANKER_PORT='${var.reranker_port}' RERANKER_BACKEND='${var.reranker_backend}' FILESYSTEM_NAME='${var.create_filesystem ? var.filesystem_name : ""}' /tmp/setup-instance.sh",
